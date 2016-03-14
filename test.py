@@ -14,14 +14,14 @@ status = {
 }
 
 inv_map = {v: k for k, v in status.items()}
-
+stuff = ['hardware', 'analytics', 'web', 'other', 'network_hosting', 'mobile', 'software']
 with open('crunchbase-companies.csv', 'rU') as csvfile:
 	reader = csv.reader(csvfile, delimiter=',')
 
 	
 	for row in reader:
 		timeBase = row[10]
-		if row[2] == 'software' and timeBase.strip() != '' and int(timeBase[0:4]) > 1980:
+		if row[2] in stuff and timeBase.strip() != '' and int(timeBase[0:4]) > 1980:
 			
 			pattern = '%Y-%m-%d'
 			base = int(time.mktime(time.strptime(timeBase, pattern)))
@@ -31,7 +31,9 @@ with open('crunchbase-companies.csv', 'rU') as csvfile:
 			base2013 = int(time.mktime(time.strptime(time2013, pattern2013)))
 
 			totalTime = base2013 - base
-			assert totalTime > 0
+
+			if totalTime < 0:
+				continue
 			try:
 				lst = np.array([int(row[3]), int(row[9]), totalTime])
 				exit.append(np.array(status[row[4]]))
@@ -44,8 +46,9 @@ with open('crunchbase-companies.csv', 'rU') as csvfile:
 	c1 = np.array(companies)[1700:]
 	e1 = np.array(exit)[1700:]
 
-	tree = rf(max_depth=5)
+	tree = rf(criterion='entropy', bootstrap=False, max_depth=5)
 	tree.fit(c, e)
+	print tree.score(c, e)
 	print tree.score(c1, e1)
 
 	testBase = "2021-03"
@@ -55,7 +58,10 @@ with open('crunchbase-companies.csv', 'rU') as csvfile:
 	testBase = "2014-01"
 	testPattern = "%Y-%m"
 	testStart = int(time.mktime(time.strptime(testBase, testPattern)))
-	test_point = np.array([2400000, 1, testCurrent - testStart]).reshape(1, -1)
-	print inv_map[tree.predict(test_point)[0]]
-	print "status = {'acquired' : 0, 'ipo' : 1,'operating' : 2, 'closed' : 3}:\n " + ' , '.join(list(map(str, tree.predict_proba(test_point)[0])))
+	test_point1 = np.array([2500000, 1, testCurrent - testStart]).reshape(1, -1)
+	test_point2 = np.array([3200000, 2, testCurrent - testStart]).reshape(1, -1)
+	test_point3 = np.array([40000000, 3, testCurrent - testStart]).reshape(1, -1)
+	print "status = {'acquired' : 0, 'ipo' : 1,'operating' : 2, 'closed' : 3}:\n " + ' , '.join(list(map(str, tree.predict_proba(test_point1)[0])))
+	print "status = {'acquired' : 0, 'ipo' : 1,'operating' : 2, 'closed' : 3}:\n " + ' , '.join(list(map(str, tree.predict_proba(test_point2)[0])))
+	print "status = {'acquired' : 0, 'ipo' : 1,'operating' : 2, 'closed' : 3}:\n " + ' , '.join(list(map(str, tree.predict_proba(test_point3)[0])))
 
